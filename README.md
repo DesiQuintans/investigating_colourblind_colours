@@ -24,11 +24,10 @@ pre-select distant colours.
 
 ``` r
 # remotes::install_github("DesiQuintans/librarian")
-librarian::shelf(tidyverse, 
+librarian::shelf(tidyverse, gt,
                  DesiQuintans/desiderata,  # Has the data for this analysis
-                 qgraph, igraph, gt, 
-                 khroma,  # CVD colour conversion and comparison
-                 spacesXYZ)
+                 qgraph, igraph,
+                 spacesXYZ, khroma)  # CVD colour conversion and comparison
 ```
 
     ## 
@@ -50,31 +49,31 @@ conversions of those colours that I generated using
 show_colours(material2014_colblind$normal, n = 14)
 ```
 
-![](index_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
 
 ``` r
 show_colours(material2014_colblind$deutan, n = 14)
 ```
 
-![](index_files/figure-gfm/unnamed-chunk-1-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-1-2.png)<!-- -->
 
 ``` r
 show_colours(material2014_colblind$protan, n = 14)
 ```
 
-![](index_files/figure-gfm/unnamed-chunk-1-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-1-3.png)<!-- -->
 
 ``` r
 show_colours(material2014_colblind$tritan, n = 14)
 ```
 
-![](index_files/figure-gfm/unnamed-chunk-1-4.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-1-4.png)<!-- -->
 
 ``` r
 show_colours(material2014_colblind$achrom, n = 14)
 ```
 
-![](index_files/figure-gfm/unnamed-chunk-1-5.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-1-5.png)<!-- -->
 
 ``` r
 mat2014 <- 
@@ -181,17 +180,17 @@ furthest_normal <- furthest_colour(dist_normal)
 sample_n(furthest_normal, 10)
 ```
 
-    ##               name         furthest
-    ## 1    blue_gray_800      yellow_a200
-    ## 2  deep_purple_100            black
-    ## 3         gray_900      yellow_a200
-    ## 4   light_blue_500      yellow_a200
-    ## 5      indigo_a100        lime_a200
-    ## 6         gray_200            black
-    ## 7        pink_a100 light_green_a400
-    ## 8  light_green_200       purple_900
-    ## 9       purple_800 light_green_a400
-    ## 10     orange_a100       indigo_900
+    ##                name         furthest
+    ## 1  light_green_a700      purple_a700
+    ## 2   deep_purple_300        lime_a400
+    ## 3       yellow_a200  deep_purple_900
+    ## 4        orange_800       green_a400
+    ## 5             white            black
+    ## 6          teal_100            black
+    ## 7  light_green_a400 deep_purple_a700
+    ## 8          cyan_100            black
+    ## 9           cyan_50            black
+    ## 10          blue_50            black
 
 ``` r
 count_unique(furthest_normal$furthest) %>% arrange(desc(count))
@@ -231,9 +230,9 @@ and comparing them side-by-side. Now that I have computed colour
 distances, maybe I can make a graph that does most of that work?
 
 ``` r
-similarity_graph <- function(vec, colour_names, threshold = 0, file = NULL, 
-                             width = 3000, height = 3000) {
-    mat_dist <- colour_distance(vec, colour_names)
+similarity_graph <- function(vec, threshold = 0, file = NULL, 
+                             width = 3000, height = 3000, title) {
+    mat_dist <- colour_distance(vec, 1:length(vec))
     
     # mat from colour_distance() is a pairwise difference/distance matrix.
     # However, qgraph uses weights as measures of closeness (similarity),
@@ -251,7 +250,8 @@ similarity_graph <- function(vec, colour_names, threshold = 0, file = NULL,
                shape = "square", vsize = 2, color = vec,
                # Labelled with the row number of the colour in df.
                label.scale = TRUE, label.scale.equal = TRUE,
-               edge.color = "#000000", threshold = similarity_threshold
+               edge.color = "#000000", threshold = similarity_threshold,
+               title = title
                )
     
     
@@ -269,15 +269,22 @@ similarity_graph <- function(vec, colour_names, threshold = 0, file = NULL,
 ```
 
 ``` r
-q_normal <- similarity_graph(mat2014$normal, mat2014$name, file = "q_normal.png")
+graph_title <- "Similarity of Material 2014 colours with normal colour vision."
+q_normal <- similarity_graph(mat2014$normal, file = "q_normal.png", 
+                             title = graph_title)
 ```
 
     ## Wrote to q_normal.png
 
 ![](q_normal.png)
 
+(Right-Click → View these to see them at full resolution. Numbers correspond
+to row number in the `mat2014` dataframe.)
+
 ``` r
-q_deutan <- similarity_graph(mat2014$deutan, mat2014$name, file = "q_deutan.png")
+graph_title <- "Similarity of Material 2014 colours with simulated deuteranopia."
+q_deutan <- similarity_graph(mat2014$deutan, file = "q_deutan.png", 
+                             title = graph_title)
 ```
 
     ## Wrote to q_deutan.png
@@ -285,7 +292,9 @@ q_deutan <- similarity_graph(mat2014$deutan, mat2014$name, file = "q_deutan.png"
 ![](q_deutan.png)
 
 ``` r
-q_protan <- similarity_graph(mat2014$protan, mat2014$name, file = "q_protan.png")
+graph_title <- "Similarity of Material 2014 colours with simulated protanopia."
+q_protan <- similarity_graph(mat2014$protan, file = "q_protan.png",
+                             title = graph_title)
 ```
 
     ## Wrote to q_protan.png
@@ -293,7 +302,9 @@ q_protan <- similarity_graph(mat2014$protan, mat2014$name, file = "q_protan.png"
 ![](q_protan.png)
 
 ``` r
-q_tritan <- similarity_graph(mat2014$tritan, mat2014$name, file = "q_tritan.png")
+graph_title <- "Similarity of Material 2014 colours with simulated tritanopia."
+q_tritan <- similarity_graph(mat2014$tritan, file = "q_tritan.png",
+                             title = graph_title)
 ```
 
     ## Wrote to q_tritan.png
@@ -301,7 +312,9 @@ q_tritan <- similarity_graph(mat2014$tritan, mat2014$name, file = "q_tritan.png"
 ![](q_tritan.png)
 
 ``` r
-q_achrom <- similarity_graph(mat2014$achrom, mat2014$name, file = "q_achrom.png")
+graph_title <- "Similarity of Material 2014 colours with simulated achromatopsia."
+q_achrom <- similarity_graph(mat2014$achrom, file = "q_achrom.png",
+                             title = graph_title)
 ```
 
     ## Wrote to q_achrom.png
@@ -370,18 +383,18 @@ sample_n(dist_from_graph, 10)
 ```
 
     ## # A tibble: 10 × 6
-    ##    name            normal_furthest deutan_furthest protan_furt…¹ trita…² achro…³
-    ##    <chr>           <chr>           <chr>           <chr>         <chr>   <chr>  
-    ##  1 teal_a400       gray_500        teal_500        teal_500      light_… red_300
-    ##  2 cyan_a400       blue_gray_400   teal_400        teal_500      blue_g… teal_5…
-    ##  3 teal_a700       blue_gray_400   gray_600        gray_600      blue_g… amber_…
-    ##  4 teal_800        gray_600        pink_700        brown_300     gray_6… deep_p…
-    ##  5 light_blue_a200 blue_gray_400   gray_500        pink_300      blue_g… green_…
-    ##  6 deep_purple_300 gray_500        gray_500        gray_500      blue_g… pink_4…
-    ##  7 teal_50         blue_gray_400   blue_gray_400   teal_500      deep_p… green_…
-    ##  8 pink_a700       gray_600        gray_600        brown_300     deep_p… lime_3…
-    ##  9 light_blue_900  gray_600        gray_600        pink_a200     gray_6… orange…
-    ## 10 amber_a400      gray_500        brown_300       gray_500      brown_… brown_…
+    ##    name             normal_furthest deutan_furthest protan_fur…¹ trita…² achro…³
+    ##    <chr>            <chr>           <chr>           <chr>        <chr>   <chr>  
+    ##  1 blue_gray_600    gray_500        gray_500        brown_300    deep_p… red_300
+    ##  2 deep_purple_800  blue_gray_400   gray_600        gray_600     gray_6… amber_…
+    ##  3 yellow_100       gray_500        brown_300       brown_300    deep_p… teal_6…
+    ##  4 light_blue_a400  gray_500        gray_500        teal_400     blue_g… green_…
+    ##  5 light_green_a100 gray_500        gray_500        brown_300    blue_g… teal_7…
+    ##  6 amber_400        gray_500        brown_300       gray_500     deep_p… green_…
+    ##  7 brown_300        gray_600        gray_600        pink_400     gray_6… amber_…
+    ##  8 pink_800         gray_600        gray_600        teal_500     deep_p… red_a1…
+    ##  9 orange_800       brown_300       gray_500        teal_600     lime_8… gray_6…
+    ## 10 light_green_700  gray_600        gray_600        pink_a200    deep_p… brown_…
     ## # … with abbreviated variable names ¹​protan_furthest, ²​tritan_furthest,
     ## #   ³​achrom_furthest
 
@@ -394,12 +407,12 @@ mat2014_done <-
 gt(select(mat2014_done, name:achrom))
 ```
 
-<div id="sstddmzelv" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="kvwvdstpdt" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#sstddmzelv .gt_table {
+#kvwvdstpdt .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -424,7 +437,7 @@ gt(select(mat2014_done, name:achrom))
   border-left-color: #D3D3D3;
 }
 
-#sstddmzelv .gt_heading {
+#kvwvdstpdt .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -436,12 +449,12 @@ gt(select(mat2014_done, name:achrom))
   border-right-color: #D3D3D3;
 }
 
-#sstddmzelv .gt_caption {
+#kvwvdstpdt .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#sstddmzelv .gt_title {
+#kvwvdstpdt .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -453,7 +466,7 @@ gt(select(mat2014_done, name:achrom))
   border-bottom-width: 0;
 }
 
-#sstddmzelv .gt_subtitle {
+#kvwvdstpdt .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -465,13 +478,13 @@ gt(select(mat2014_done, name:achrom))
   border-top-width: 0;
 }
 
-#sstddmzelv .gt_bottom_border {
+#kvwvdstpdt .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#sstddmzelv .gt_col_headings {
+#kvwvdstpdt .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -486,7 +499,7 @@ gt(select(mat2014_done, name:achrom))
   border-right-color: #D3D3D3;
 }
 
-#sstddmzelv .gt_col_heading {
+#kvwvdstpdt .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -506,7 +519,7 @@ gt(select(mat2014_done, name:achrom))
   overflow-x: hidden;
 }
 
-#sstddmzelv .gt_column_spanner_outer {
+#kvwvdstpdt .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -518,15 +531,15 @@ gt(select(mat2014_done, name:achrom))
   padding-right: 4px;
 }
 
-#sstddmzelv .gt_column_spanner_outer:first-child {
+#kvwvdstpdt .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#sstddmzelv .gt_column_spanner_outer:last-child {
+#kvwvdstpdt .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#sstddmzelv .gt_column_spanner {
+#kvwvdstpdt .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -538,7 +551,7 @@ gt(select(mat2014_done, name:achrom))
   width: 100%;
 }
 
-#sstddmzelv .gt_group_heading {
+#kvwvdstpdt .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -564,7 +577,7 @@ gt(select(mat2014_done, name:achrom))
   text-align: left;
 }
 
-#sstddmzelv .gt_empty_group_heading {
+#kvwvdstpdt .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -579,15 +592,15 @@ gt(select(mat2014_done, name:achrom))
   vertical-align: middle;
 }
 
-#sstddmzelv .gt_from_md > :first-child {
+#kvwvdstpdt .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#sstddmzelv .gt_from_md > :last-child {
+#kvwvdstpdt .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#sstddmzelv .gt_row {
+#kvwvdstpdt .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -606,7 +619,7 @@ gt(select(mat2014_done, name:achrom))
   overflow-x: hidden;
 }
 
-#sstddmzelv .gt_stub {
+#kvwvdstpdt .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -619,7 +632,7 @@ gt(select(mat2014_done, name:achrom))
   padding-right: 5px;
 }
 
-#sstddmzelv .gt_stub_row_group {
+#kvwvdstpdt .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -633,11 +646,11 @@ gt(select(mat2014_done, name:achrom))
   vertical-align: top;
 }
 
-#sstddmzelv .gt_row_group_first td {
+#kvwvdstpdt .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#sstddmzelv .gt_summary_row {
+#kvwvdstpdt .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -647,16 +660,16 @@ gt(select(mat2014_done, name:achrom))
   padding-right: 5px;
 }
 
-#sstddmzelv .gt_first_summary_row {
+#kvwvdstpdt .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#sstddmzelv .gt_first_summary_row.thick {
+#kvwvdstpdt .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#sstddmzelv .gt_last_summary_row {
+#kvwvdstpdt .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -666,7 +679,7 @@ gt(select(mat2014_done, name:achrom))
   border-bottom-color: #D3D3D3;
 }
 
-#sstddmzelv .gt_grand_summary_row {
+#kvwvdstpdt .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -676,7 +689,7 @@ gt(select(mat2014_done, name:achrom))
   padding-right: 5px;
 }
 
-#sstddmzelv .gt_first_grand_summary_row {
+#kvwvdstpdt .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -686,11 +699,11 @@ gt(select(mat2014_done, name:achrom))
   border-top-color: #D3D3D3;
 }
 
-#sstddmzelv .gt_striped {
+#kvwvdstpdt .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#sstddmzelv .gt_table_body {
+#kvwvdstpdt .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -699,7 +712,7 @@ gt(select(mat2014_done, name:achrom))
   border-bottom-color: #D3D3D3;
 }
 
-#sstddmzelv .gt_footnotes {
+#kvwvdstpdt .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -713,7 +726,7 @@ gt(select(mat2014_done, name:achrom))
   border-right-color: #D3D3D3;
 }
 
-#sstddmzelv .gt_footnote {
+#kvwvdstpdt .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -722,7 +735,7 @@ gt(select(mat2014_done, name:achrom))
   padding-right: 5px;
 }
 
-#sstddmzelv .gt_sourcenotes {
+#kvwvdstpdt .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -736,7 +749,7 @@ gt(select(mat2014_done, name:achrom))
   border-right-color: #D3D3D3;
 }
 
-#sstddmzelv .gt_sourcenote {
+#kvwvdstpdt .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -744,64 +757,64 @@ gt(select(mat2014_done, name:achrom))
   padding-right: 5px;
 }
 
-#sstddmzelv .gt_left {
+#kvwvdstpdt .gt_left {
   text-align: left;
 }
 
-#sstddmzelv .gt_center {
+#kvwvdstpdt .gt_center {
   text-align: center;
 }
 
-#sstddmzelv .gt_right {
+#kvwvdstpdt .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#sstddmzelv .gt_font_normal {
+#kvwvdstpdt .gt_font_normal {
   font-weight: normal;
 }
 
-#sstddmzelv .gt_font_bold {
+#kvwvdstpdt .gt_font_bold {
   font-weight: bold;
 }
 
-#sstddmzelv .gt_font_italic {
+#kvwvdstpdt .gt_font_italic {
   font-style: italic;
 }
 
-#sstddmzelv .gt_super {
+#kvwvdstpdt .gt_super {
   font-size: 65%;
 }
 
-#sstddmzelv .gt_footnote_marks {
+#kvwvdstpdt .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#sstddmzelv .gt_asterisk {
+#kvwvdstpdt .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#sstddmzelv .gt_indent_1 {
+#kvwvdstpdt .gt_indent_1 {
   text-indent: 5px;
 }
 
-#sstddmzelv .gt_indent_2 {
+#kvwvdstpdt .gt_indent_2 {
   text-indent: 10px;
 }
 
-#sstddmzelv .gt_indent_3 {
+#kvwvdstpdt .gt_indent_3 {
   text-indent: 15px;
 }
 
-#sstddmzelv .gt_indent_4 {
+#kvwvdstpdt .gt_indent_4 {
   text-indent: 20px;
 }
 
-#sstddmzelv .gt_indent_5 {
+#kvwvdstpdt .gt_indent_5 {
   text-indent: 25px;
 }
 </style>
@@ -2364,12 +2377,12 @@ gt(select(mat2014_done, name:achrom))
 gt(select(mat2014_done, name, ends_with("furthest")))
 ```
 
-<div id="iymdgsnjcl" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="vhpcviwffu" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#iymdgsnjcl .gt_table {
+#vhpcviwffu .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -2394,7 +2407,7 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   border-left-color: #D3D3D3;
 }
 
-#iymdgsnjcl .gt_heading {
+#vhpcviwffu .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -2406,12 +2419,12 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   border-right-color: #D3D3D3;
 }
 
-#iymdgsnjcl .gt_caption {
+#vhpcviwffu .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#iymdgsnjcl .gt_title {
+#vhpcviwffu .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -2423,7 +2436,7 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   border-bottom-width: 0;
 }
 
-#iymdgsnjcl .gt_subtitle {
+#vhpcviwffu .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -2435,13 +2448,13 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   border-top-width: 0;
 }
 
-#iymdgsnjcl .gt_bottom_border {
+#vhpcviwffu .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#iymdgsnjcl .gt_col_headings {
+#vhpcviwffu .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -2456,7 +2469,7 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   border-right-color: #D3D3D3;
 }
 
-#iymdgsnjcl .gt_col_heading {
+#vhpcviwffu .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -2476,7 +2489,7 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   overflow-x: hidden;
 }
 
-#iymdgsnjcl .gt_column_spanner_outer {
+#vhpcviwffu .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -2488,15 +2501,15 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   padding-right: 4px;
 }
 
-#iymdgsnjcl .gt_column_spanner_outer:first-child {
+#vhpcviwffu .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#iymdgsnjcl .gt_column_spanner_outer:last-child {
+#vhpcviwffu .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#iymdgsnjcl .gt_column_spanner {
+#vhpcviwffu .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -2508,7 +2521,7 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   width: 100%;
 }
 
-#iymdgsnjcl .gt_group_heading {
+#vhpcviwffu .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2534,7 +2547,7 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   text-align: left;
 }
 
-#iymdgsnjcl .gt_empty_group_heading {
+#vhpcviwffu .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -2549,15 +2562,15 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   vertical-align: middle;
 }
 
-#iymdgsnjcl .gt_from_md > :first-child {
+#vhpcviwffu .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#iymdgsnjcl .gt_from_md > :last-child {
+#vhpcviwffu .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#iymdgsnjcl .gt_row {
+#vhpcviwffu .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2576,7 +2589,7 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   overflow-x: hidden;
 }
 
-#iymdgsnjcl .gt_stub {
+#vhpcviwffu .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -2589,7 +2602,7 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   padding-right: 5px;
 }
 
-#iymdgsnjcl .gt_stub_row_group {
+#vhpcviwffu .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -2603,11 +2616,11 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   vertical-align: top;
 }
 
-#iymdgsnjcl .gt_row_group_first td {
+#vhpcviwffu .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#iymdgsnjcl .gt_summary_row {
+#vhpcviwffu .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -2617,16 +2630,16 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   padding-right: 5px;
 }
 
-#iymdgsnjcl .gt_first_summary_row {
+#vhpcviwffu .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#iymdgsnjcl .gt_first_summary_row.thick {
+#vhpcviwffu .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#iymdgsnjcl .gt_last_summary_row {
+#vhpcviwffu .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2636,7 +2649,7 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   border-bottom-color: #D3D3D3;
 }
 
-#iymdgsnjcl .gt_grand_summary_row {
+#vhpcviwffu .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -2646,7 +2659,7 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   padding-right: 5px;
 }
 
-#iymdgsnjcl .gt_first_grand_summary_row {
+#vhpcviwffu .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -2656,11 +2669,11 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   border-top-color: #D3D3D3;
 }
 
-#iymdgsnjcl .gt_striped {
+#vhpcviwffu .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#iymdgsnjcl .gt_table_body {
+#vhpcviwffu .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -2669,7 +2682,7 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   border-bottom-color: #D3D3D3;
 }
 
-#iymdgsnjcl .gt_footnotes {
+#vhpcviwffu .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -2683,7 +2696,7 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   border-right-color: #D3D3D3;
 }
 
-#iymdgsnjcl .gt_footnote {
+#vhpcviwffu .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -2692,7 +2705,7 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   padding-right: 5px;
 }
 
-#iymdgsnjcl .gt_sourcenotes {
+#vhpcviwffu .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -2706,7 +2719,7 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   border-right-color: #D3D3D3;
 }
 
-#iymdgsnjcl .gt_sourcenote {
+#vhpcviwffu .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -2714,64 +2727,64 @@ gt(select(mat2014_done, name, ends_with("furthest")))
   padding-right: 5px;
 }
 
-#iymdgsnjcl .gt_left {
+#vhpcviwffu .gt_left {
   text-align: left;
 }
 
-#iymdgsnjcl .gt_center {
+#vhpcviwffu .gt_center {
   text-align: center;
 }
 
-#iymdgsnjcl .gt_right {
+#vhpcviwffu .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#iymdgsnjcl .gt_font_normal {
+#vhpcviwffu .gt_font_normal {
   font-weight: normal;
 }
 
-#iymdgsnjcl .gt_font_bold {
+#vhpcviwffu .gt_font_bold {
   font-weight: bold;
 }
 
-#iymdgsnjcl .gt_font_italic {
+#vhpcviwffu .gt_font_italic {
   font-style: italic;
 }
 
-#iymdgsnjcl .gt_super {
+#vhpcviwffu .gt_super {
   font-size: 65%;
 }
 
-#iymdgsnjcl .gt_footnote_marks {
+#vhpcviwffu .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#iymdgsnjcl .gt_asterisk {
+#vhpcviwffu .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#iymdgsnjcl .gt_indent_1 {
+#vhpcviwffu .gt_indent_1 {
   text-indent: 5px;
 }
 
-#iymdgsnjcl .gt_indent_2 {
+#vhpcviwffu .gt_indent_2 {
   text-indent: 10px;
 }
 
-#iymdgsnjcl .gt_indent_3 {
+#vhpcviwffu .gt_indent_3 {
   text-indent: 15px;
 }
 
-#iymdgsnjcl .gt_indent_4 {
+#vhpcviwffu .gt_indent_4 {
   text-indent: 20px;
 }
 
-#iymdgsnjcl .gt_indent_5 {
+#vhpcviwffu .gt_indent_5 {
   text-indent: 25px;
 }
 </style>
