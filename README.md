@@ -1,2 +1,0 @@
-# investigating_colourblind_colours
-Investigating and comparing colourblind-friendly colour schemes
