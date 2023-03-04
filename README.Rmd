@@ -1,0 +1,289 @@
+---
+title: "Investigating colourblind-friendly colour schemes"
+author: "Desi Quintans"
+date: "`r Sys.Date()`"
+output:
+  md_document:
+    variant: gfm
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = FALSE)
+```
+
+# Introduction and aim
+
+I don't have color vision deficiency (CVD, commonly called colour blindness), but I have a persistent interest in choosing CVD-safe colours that comes from my work as a scientist (because we show data in graphs) and as a person who teaches R sometimes (because syntax highlighters show code elements in colour). To support the latter, I made [a colourblind-friendly theme called Pebble-Safe for RStudio](https://github.com/DesiQuintans/Pebble-safe) and I am continuing to [make it easier for people to make their own themes](https://github.com/DesiQuintans/RStudioThemeTemplate) to suit their needs.
+
+In making the Pebble-Safe theme, I documented a method of selecting CVD-safe colours that amounted to _"Shuffle them in a grid and if two colours look similar beside each other, delete one of them."_ This is fine and even necessary as a final step, but it definitely shouldn't be the _first_ step since it's so effortful.  
+
+This time I'm going to use similarity and network analysis methods to pre-select distant colours.
+
+
+## Packages used
+
+```{r packages_used}
+# remotes::install_github("DesiQuintans/librarian")
+librarian::shelf(tidyverse, gt,
+                 DesiQuintans/desiderata,  # Has the data for this analysis
+                 qgraph, igraph,
+                 spacesXYZ, khroma)  # CVD colour conversion and comparison
+```
+
+# Dataset
+
+I'll be using a dataset from my personal package, which contains Google's Material Design 2014 colour palette together with simulated CVD conversions of those colours that I generated using `khroma:::anomalize()` (a private function inside that package).
+
+```{r}
+show_colours(material2014_colblind$normal, n = 14)
+show_colours(material2014_colblind$deutan, n = 14)
+show_colours(material2014_colblind$protan, n = 14)
+show_colours(material2014_colblind$tritan, n = 14)
+show_colours(material2014_colblind$achrom, n = 14)
+
+mat2014 <- 
+    material2014_colblind %>%   # Shorter name
+    filter(not.na(name) == TRUE)
+
+glimpse(mat2014)
+```
+
+
+# Choosing distant colours based on their colour difference
+
+`khroma::compare()` lets me calculate colour distances using the CIELAB [distance metric recommended in 2000](https://en.wikipedia.org/wiki/Color_difference#CIEDE2000), which is a wild thing to behold.
+
+```{r}
+#' Produce a pairwise distance matrix of colours 
+#'
+#' @param vec (Character) A vector of colours.
+#' @param colour_names (Character) Human-readable names of those colours.
+#'
+#' @return A distance matrix.
+#' @export
+#'
+#' @examples
+#' colour_distance(c("#FFFFFF", "#FF0000", "#0000FF"), c("white", "red", "blue"))
+colour_distance <- function(vec, colour_names) {
+    col_dist <- 
+        vec %>% 
+        khroma::compare(metric = 2000) %>%   
+        as.matrix()
+    
+    rownames(col_dist) <- colour_names
+    colnames(col_dist) <- colour_names
+    
+    col_dist
+}
+
+colour_distance(mat2014$normal[1:4], mat2014$name[1:4])
+```
+
+I can use these pairwise distances to find which colours are least similar, and therefore good candidates for high-difference pairings like syntax highlighting.
+
+```{r}
+#' From a colour distance matrix, which colour is most distant?
+#'
+#' @param mat (Dist) A distance matrix.
+#' @param colour_names (Character) Human-readable colour names that will be
+#'      used to label the rows and columns of `mat`.
+#'
+#' @return A character vector.
+#' @export
+#'
+#' @examples
+#' c_mat <- colour_distance(c("#FFFFFF", "#FF0000", "#0000FF"), c("white", "red", "blue"))
+#' furthest_colour(c_mat)
+furthest_colour <- function(mat) {
+    colour_names <- rownames(mat)
+    
+    data.frame(name = colour_names,
+               furthest = colour_names[max.col(mat, ties.method = "first")])
+}
+
+x <- colour_distance(mat2014$normal[12:16], mat2014$name[12:16])
+
+furthest_colour(x)
+```
+
+## Does it work?
+
+Not really, because it seems to pick the same distant colours repeatedly.
+
+```{r}
+dist_normal <- colour_distance(mat2014$normal, mat2014$name)
+
+furthest_normal <- furthest_colour(dist_normal)
+
+sample_n(furthest_normal, 10)
+
+count_unique(furthest_normal$furthest) %>% arrange(desc(count))
+```
+
+
+
+# Choosing distant colours by graphing
+
+If we want to get the most out of actually _choosing_ colours, then we're going to have to _look at_ them at some point. As I said in the introduction, my past work involved a lot of shuffling colour swatches and comparing them side-by-side. Now that I have computed colour distances, maybe I can make a graph that does most of that work?
+
+```{r}
+similarity_graph <- function(vec, threshold = 0, file = NULL, 
+                             width = 3000, height = 3000, title) {
+    mat_dist <- colour_distance(vec, 1:length(vec))
+    
+    # mat from colour_distance() is a pairwise difference/distance matrix.
+    # However, qgraph uses weights as measures of closeness (similarity),
+    # not distance. So we need to convert from distance to similarity.
+    # https://stats.stackexchange.com/a/158285
+    
+    colour_similarity <- 1 / (1 + mat_dist)
+    
+    # I may want to remove a lot of weaker edges to make the major correlations
+    # more visible.
+    similarity_threshold <- quantile(mat_dist, threshold)
+    
+    my_graph <- 
+        qgraph(colour_similarity, layout = "spring",
+               shape = "square", vsize = 2, color = vec,
+               # Labelled with the row number of the colour in df.
+               label.scale = TRUE, label.scale.equal = TRUE,
+               edge.color = "#000000", threshold = similarity_threshold,
+               title = title
+               )
+    
+    
+    if (is.null(file) == FALSE) {
+        png(file, width = width, height = height, unit = "px")
+        plot(my_graph)
+        dev.off()
+    }
+
+    return(list(graph = my_graph, 
+                dist = colour_distance, 
+                sim = colour_similarity))
+}
+```
+
+```{r}
+graph_title <- "Similarity of Material 2014 colours with normal colour vision."
+q_normal <- similarity_graph(mat2014$normal, file = "q_normal.png", 
+                             title = graph_title)
+```
+
+(Right-Click → View these to see them at full resolution. Numbers correspond to row number in the `mat2014` dataframe.)
+
+![](q_normal.png)
+
+```{r}
+graph_title <- "Similarity of Material 2014 colours with simulated deuteranopia."
+q_deutan <- similarity_graph(mat2014$deutan, file = "q_deutan.png", 
+                             title = graph_title)
+```
+
+![](q_deutan.png)
+
+```{r}
+graph_title <- "Similarity of Material 2014 colours with simulated protanopia."
+q_protan <- similarity_graph(mat2014$protan, file = "q_protan.png",
+                             title = graph_title)
+```
+
+![](q_protan.png)
+
+
+```{r}
+graph_title <- "Similarity of Material 2014 colours with simulated tritanopia."
+q_tritan <- similarity_graph(mat2014$tritan, file = "q_tritan.png",
+                             title = graph_title)
+```
+
+![](q_tritan.png)
+
+```{r}
+graph_title <- "Similarity of Material 2014 colours with simulated achromatopsia."
+q_achrom <- similarity_graph(mat2014$achrom, file = "q_achrom.png",
+                             title = graph_title)
+```
+
+![](q_achrom.png)
+
+Very nice!
+
+
+# Getting distances from graphs
+
+I wonder if I can choose distant colours using their graph distance?
+
+```{r}
+graph_distance <- function(qg, cvd, colour_names) {
+    dist_table <- 
+        distances(as.igraph(qg)) %>% 
+        as.data.frame() %>%
+        set_names(colour_names) %>% 
+        mutate(name = colour_names, .before = everything()) %>% 
+        rowwise() %>%
+        nest(distances = c(-name)) %>% 
+        mutate("{{cvd}}_furthest" := 
+                   map_chr(distances, 
+                           function(df) {
+                               df %>% 
+                                   pivot_longer(cols = everything(), 
+                                                names_to = "name", values_to = "dist") %>% 
+                                   arrange(desc(dist)) %>% 
+                                   head(1) %>% 
+                                   pull(name)
+                           })
+               ) %>% 
+        select(-distances)
+    
+    return(dist_table)
+}
+
+furthest_normal <- graph_distance(q_normal$graph, normal, mat2014$name)
+furthest_deutan <- graph_distance(q_deutan$graph, deutan, mat2014$name)
+furthest_protan <- graph_distance(q_protan$graph, protan, mat2014$name)
+furthest_tritan <- graph_distance(q_tritan$graph, tritan, mat2014$name)
+furthest_achrom <- graph_distance(q_achrom$graph, achrom, mat2014$name)
+
+dist_from_graph <- 
+    bind_cols(
+        furthest_normal,
+        select(furthest_deutan, -name),
+        select(furthest_protan, -name),
+        select(furthest_tritan, -name),
+        select(furthest_achrom, -name)
+    ) %>% 
+    glimpse()
+
+sample_n(dist_from_graph, 10)
+```
+
+It's got the same shortcomings in that it keeps picking similar distant colours.
+
+
+```{r}
+mat2014_done <- 
+    left_join(mat2014, dist_from_graph, by = "name")
+
+show_furthest_colours <- function(df, cvd) {
+    colour_names <-
+        df %>%
+        pull(paste0(cvd, "_furthest")) %>%
+        unique()
+    
+    supposedly_distinct <-
+        df %>%
+        filter(name %in% colour_names) %>%
+        pull(paste0(cvd))
+    
+    show_colours(supposedly_distinct)
+}
+
+show_furthest_colours(mat2014_done, "normal")
+show_furthest_colours(mat2014_done, "deutan")
+show_furthest_colours(mat2014_done, "protan")
+show_furthest_colours(mat2014_done, "tritan")
+show_furthest_colours(mat2014_done, "achrom")
+```
+
+I'm not really sure where to go from there programmatically, but I think the graphs are incredibly handy. They let me see all of the colours and how they relate to each other, and the graphs _do_ put very similar colours close together so that I don't have to think too hard about distinctiveness.
